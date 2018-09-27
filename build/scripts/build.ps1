@@ -230,6 +230,16 @@ function Build-Artifacts() {
     if ($pack) { $args += " /t:Pack" }    
     if (-not $deployExtensions) { $args += " /p:DeployExtension=false" }
 
+    if($sign){
+        try{
+            # Download-LatestOptProfData
+        }
+        catch {
+            # If we don't have the credentials to download the data the build will fail
+            # attampting to apply the optimizations
+        }
+    }
+    
     if ($buildCoreClr) {
         Run-MSBuild "Compilers.sln" $args -useDotnetBuild
     }
@@ -292,6 +302,33 @@ function Build-OptProfData() {
     $vsBranch >> $vsBranchText
 }
 
+function Download-LatestOptProfData(){
+    $Server = "https://microsoft.artifacts.visualstudio.com/DefaultCollection"
+    $vstsDropClientUrl = "$Server/_apis/drop/client/exe"
+    $vstsDropClientZip = "Drop.App.zip"
+    $vstsDropClientPath = Join-Path env:Temp "VSTSDrop"
+    Remove-Item -Path $vstsDropClientPath -Force -ErrorAction SilentlyContinue -Recurse
+    Write-Host "Attempting drop.exe download from $vstsDropClientUrl"
+    $vstsDropClientZipPath = Join-Path $vstsDropClientPath $vstsDropClientZip
+    New-Item -ItemType Directory -Force -Path $vstsDropClientPath | Out-Null
+    $client = New-Object -TypeName System.Net.WebClient
+    $client.DownloadFile($vstsDropClientUrl, $vstsDropClientZipPath)
+    $null = [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem')
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($vstsDropClientZipPath, $vstsDropClientPath)
+    $dropExe = -join ($vstsDropClientPath, '\lib\net45\drop.exe')
+   
+    $devDivUrl = "https://devdiv.artifacts.visualstudio.com"
+    $optimizationDataPath = "OptimizationData/dotnet/roslyn" + "/" +$branchName
+    $branchName = &git rev-parse --abbrev-ref HEAD
+    $dropListArgs = " List -s $devDivUrl -p $optimizationDataPath -b"
+    $dropListOutput = (Exec-Command $dropExe $dropListArgs) | Out-String
+    $dropListArray = $dropListOutput.Split('\n')
+    $ptimizationDataFullPath = $dropListArray[$dropListArray.Length-3]
+    
+    $outputPath = Join-Path $configDir "OptimizationData"
+    $dropGetArgs = " get -s $devDivUrl -n $ptimizationDataFullPath -d $outputPath"
+    Exec-Console $dropExe $dropGetArgs
+}
 function Build-Installer () {
     #  Copying Artifacts
     $installerDir = Join-Path $configDir "Installer"
