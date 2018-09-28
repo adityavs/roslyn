@@ -82,7 +82,7 @@ steps:
     toLowerCase: false
     usePat: false
   displayName: 'OPTPROF - Publish to Artifact Services - ProfilingInputs'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 # Created a exe that will install visual studio with this version 
 - task: PowerShell@2
@@ -90,7 +90,7 @@ steps:
     filePath: build\scripts\setmanifestpaths.ps1
     failOnStderr: true
   displayName: 'OPTPROF - Set VSTS variables for vsman files'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 - task: ms-vseng.MicroBuildTasks.0e9d0d4d-71ec-4e4e-ae40-db9896f1ae74.MicroBuildBuildVSBootstrapper@1
   inputs:
@@ -99,7 +99,7 @@ steps:
     manifests: $(SetupManifests)
     outputFolder: '$(Build.SourcesDirectory)\Binaries\$(BuildConfiguration)\Installer'
   displayName: 'OPTPROF - Build VS bootstrapper'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 # Publish bootstrapper to vsdrop
 - task: MicroBuildUploadVstsDropFolder@1
@@ -107,7 +107,7 @@ steps:
     DropFolder: '$(Build.SourcesDirectory)\Binaries\$(BuildConfiguration)\Installer'
     DropName: 'Products/DevDiv/$(Build.Repository.Name)/$(Build.SourceBranchName)/$(Build.BuildNumber)'
   displayName: OPTPROF - Publish bootstrap installer to VSTS drop
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 # Publish run settings
 - task: PowerShell@2
@@ -116,7 +116,7 @@ steps:
     arguments: -release
     failOnStderr: true
   displayName: 'OPTPROF - generate runsettings file'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 - task: ms-vscs-artifact.build-tasks.artifactDropTask-1.artifactDropTask@0
   inputs:
@@ -127,7 +127,7 @@ steps:
     usePat: false
     dropMetadataContainerName: RunSettings
   displayName: 'OPTPROF - Publish to Artifact Services - RunSettings'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 # Publish bootstrapper info
 - task: PublishBuildArtifacts@1
@@ -136,7 +136,7 @@ steps:
     ArtifactName: MicroBuildOutputs
     ArtifactType: Container
   displayName: 'OPTPROF - Publish Artifact: MicroBuildOutputs'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 # Publish scripts to get the branch of VS that this inserts into
 - task: PublishBuildArtifacts@1
@@ -145,7 +145,7 @@ steps:
     ArtifactName: BranchInfo
     ArtifactType: Container
   displayName: 'OPTPROF - Publish Artifact: BranchInfo'
-  condition: succeeded()
+  condition: succeededOrFailed()
 
 ### END OPTPROF TASKS ###
 
